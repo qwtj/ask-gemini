@@ -11,6 +11,9 @@ echo "export GOOGLE_API_KEY=<YOUR API KEY>" >> ~/.zprofile
 
 ## Example use cases
 
+### Git Messages
+ask "a good commit message max line length 66 chars; $(git diff HEAD)"
+
 ### Simple Question and Reponse
 $ ask "what is the first day of week?" <br>
 Monday
