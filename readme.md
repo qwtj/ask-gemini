@@ -5,11 +5,12 @@
 mkdir -p ~/.bin
 cp ask ~/.bin/.
 echo "export PATH=$PATH:~/.bin" >> ~/.zprofile
+. ~/.zprofile
 ```
 
 ## Example use cases
 
-$ ask "what is the first day of week?"
+$ ask "what is the first day of week?" <br>
 Monday
 
 $ ask "how do I make jello" --glow
