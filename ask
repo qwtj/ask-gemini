@@ -5,8 +5,8 @@ send_prompt_to_gemini() {
     local prompt="$1"
     local use_markdown_table="$2"
     local api_key="$GOOGLE_API_KEY"
-    local api_url="https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$api_key"
-
+    local api_url="https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=$api_key"
+  
     # Encode the prompt as base64
     local encoded_prompt=$(echo -n "$prompt" | base64)
 
@@ -28,7 +28,7 @@ send_prompt_to_gemini() {
 
     # Extract the text response and safety ratings using jq
     local text_response=$(echo "$response" | base64 --decode | jq -r '.candidates[0].content.parts[0].text')
-    local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].safetyRatings[] | "\(.category): \(.probability)"')
+    local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].finishReason')
 
     # Display the results
     if [ "$use_markdown_table" = "true" ]; then
