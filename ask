@@ -3,7 +3,8 @@
 # Function to send a base64-encoded prompt to Google Gemini using curl
 send_prompt_to_gemini() {
     local prompt="$1"
-    local api_key="$GOOGLE_API_KEY"  # Use the API key from the environment variable
+    local use_markdown_table="$2"
+    local api_key="$GOOGLE_API_KEY"
     local api_url="https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$api_key"
 
     # Encode the prompt as base64
@@ -29,34 +30,45 @@ send_prompt_to_gemini() {
     local text_response=$(echo "$response" | base64 --decode | jq -r '.candidates[0].content.parts[0].text')
     local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].safetyRatings[] | "\(.category): \(.probability)"')
 
-    # Display the results in a Markdown table format
-    echo "| Generated Content |"
-    echo "|-------------------|"
-    echo "| $text_response    |"
-    echo
-    echo "| Safety Ratings     |"
-    echo "|-------------------|"
-    echo "$safety_ratings" | while read -r line; do
-        echo "| $line |"
-    done
+    # Display the results
+    if [ "$use_markdown_table" = "true" ]; then
+        # Display the results in a Markdown table format
+        echo "| Generated Content |"
+        echo "|-------------------|"
+        echo "| $text_response    |"
+        echo
+        echo "| Safety Ratings    |"
+        echo "|-------------------|"
+        echo "$safety_ratings" | while read -r line; do
+            echo "| $line |"
+        done
+    else
+       echo $text_response
+    fi
 }
 
 # Check if a prompt was provided as an argument
 if [ -z "$1" ]; then
-    echo "Usage: $0 <prompt> [--glow]"
+    echo "Usage: $0 <prompt> [--glow] [--markdown]"
     exit 1
 fi
 
-# Determine whether to use glow
-if [ "$2" = "--glow" ]; then
-    # Check if glow is installed
-    if ! command -v glow &> /dev/null; then
-        echo "The 'glow' command is not installed."
-        echo "You can install it using Homebrew by running the following command:"
-        echo
-        echo "brew install glow"
+# Default options
+use_markdown_table="false"
+use_glow="false"
+
+# Parse the options
+for arg in "$2" "$3"; do
+    if [ "$arg" = "--markdown" ]; then
+        use_markdown_table="true"
+    elif [ "$arg" = "--glow" ]; then
+        use_glow="true"
     fi
-    send_prompt_to_gemini "$1" | glow
+done
+
+# Execute with or without glow
+if [ "$use_glow" = "true" ]; then
+    send_prompt_to_gemini "$1" "$use_markdown_table" | glow
 else
-    send_prompt_to_gemini "$1"
+    send_prompt_to_gemini "$1" "$use_markdown_table"
 fi
