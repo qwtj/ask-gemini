@@ -1,0 +1,62 @@
+#!/usr/bin/env zsh
+
+# Function to send a base64-encoded prompt to Google Gemini using curl
+send_prompt_to_gemini() {
+    local prompt="$1"
+    local api_key="$GOOGLE_API_KEY"  # Use the API key from the environment variable
+    local api_url="https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$api_key"
+
+    # Encode the prompt as base64
+    local encoded_prompt=$(echo -n "$prompt" | base64)
+
+    # Send the request and capture the response, then base64 encode the entire JSON response
+    local response=$(curl -s -X POST "$api_url" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "contents": [{
+                "parts": [
+                    {
+                        "inline_data": {
+                            "mime_type":"text/plain",
+                            "data": "'"$encoded_prompt"'"
+                        }
+                    }
+                ]
+            }]
+        }' | base64)
+
+    # Extract the text response and safety ratings using jq
+    local text_response=$(echo "$response" | base64 --decode | jq -r '.candidates[0].content.parts[0].text')
+    local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].safetyRatings[] | "\(.category): \(.probability)"')
+
+    # Display the results in a Markdown table format
+    echo "| Generated Content |"
+    echo "|-------------------|"
+    echo "| $text_response    |"
+    echo
+    echo "| Safety Ratings     |"
+    echo "|-------------------|"
+    echo "$safety_ratings" | while read -r line; do
+        echo "| $line |"
+    done
+}
+
+# Check if a prompt was provided as an argument
+if [ -z "$1" ]; then
+    echo "Usage: $0 <prompt> [--glow]"
+    exit 1
+fi
+
+# Determine whether to use glow
+if [ "$2" = "--glow" ]; then
+    # Check if glow is installed
+    if ! command -v glow &> /dev/null; then
+        echo "The 'glow' command is not installed."
+        echo "You can install it using Homebrew by running the following command:"
+        echo
+        echo "brew install glow"
+    fi
+    send_prompt_to_gemini "$1" | glow
+else
+    send_prompt_to_gemini "$1"
+fi
