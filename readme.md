@@ -4,16 +4,29 @@
 
 mkdir -p ~/.bin
 cp ask ~/.bin/.
-echo "export PATH=$PATH:~/.bin" >> ~/.zprofile
+echo 'export PATH="$PATH:${HOME}/.bin"' >> ~/.zprofile
+echo "export GOOGLE_API_KEY=<YOUR API KEY>" >> ~/.zprofile
 . ~/.zprofile
 ```
 
 ## Example use cases
 
+### Simple Question and Reponse
 $ ask "what is the first day of week?" <br>
 Monday
 
-$ ask "how do I make jello" --glow
+### Creating Scripts
+$ ask "write a shell script to output name and File Access Date/Time using exiftool given a directory of images as an option" > list_images.sh
+$ chmod 755 list_images.sh
+$ ./list_images.sh test_images
+91036491.png: 2024:08:16 13:18:35-05:00
+
+### For the Ultra Brave Running a Command Blindly
+$ $(ask "macos terminal command for listing directory contents")
+ask		readme.md	test
+
+### Getting Directions
+$ ask "how do I make jello" --markdown --glow
 
 ```
     GENERATED CONTENT                                                                                                 
