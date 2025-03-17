@@ -14,7 +14,7 @@ send_prompt_to_gemini() {
     esac
 
     local api_url="https://generativelanguage.googleapis.com/${api_version}/models/${model}:generateContent?key=$api_key"
-  
+
     local encoded_prompt=$(echo -n "$prompt" | base64)
 
     local response=$(curl -s -X POST "$api_url" \
@@ -50,7 +50,7 @@ send_prompt_to_gemini() {
     fi
 }
 
-if [ -z "$1" ]; then
+if [ $# -eq 0  -a ! -p /dev/stdin ]; then
     echo "Usage: $0 <prompt> [-m <model name>] [-g] [--glow] [--markdown]"
     echo "  -m <model name>: Specify the model (e.g., gemini-2.0-flash, gemini-1.5-pro, etc.)"
     echo "  Supported models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash, gemini-1.5-flash-8b, gemini-1.5-pro"
@@ -62,7 +62,7 @@ use_glow="false"
 prepend_guidelines="false"
 model="gemini-2.0-flash"  # Default model
 
-guidelines="\t•\tWrite a commit message; use rules: Focus on readability\n\nSubject line under 50 characters (short summary).\n\t•\tBody lines wrapped at 72 characters each (explanatory details).  Changes below:\n\n"
+guidelines="\t•\tWrite a commit message; use rules: Plaintext only, no markdown, Focus on readability\n\nSubject line under 50 characters (short summary).\n\t•\tBody lines wrapped at 72 characters each (explanatory details).  When provided a status only focus on staged changes.  Changes below:\n\n"
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -87,11 +87,29 @@ while [ "$#" -gt 0 ]; do
             ;;
         --markdown) use_markdown_table="true" ;;
         --glow) use_glow="true" ;;
-        -g) prepend_guidelines="true" ;;
-        *) prompt="$1" ;;
+        -g) prepend_guidelines="true"
+            shift
+            if [ -n "$1" ]; then
+                prompt="$1"
+            else
+                read prompt
+                while IFS= read line; do
+                  prompt="${prompt}${line}"
+                done
+            fi
+            ;;
+        *)  prompt="$1"
     esac
-    shift
+    if [ $# -ge 1 ]; then
+      shift
+    fi
 done
+
+if [ "$prepend_guidelines" = "false" -a -p /dev/stdin ]; then
+  while read line; do
+    prompt="$prompt$line\n"
+  done
+fi
 
 if [ -z "$prompt" ]; then
     echo "Error: No prompt provided"
