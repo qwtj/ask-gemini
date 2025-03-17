@@ -13,6 +13,7 @@ echo "export GOOGLE_API_KEY=<YOUR API KEY>" >> ~/.zprofile
 
 ### Git Messages
 Use, -g, for using predefined prompt to return a good commit message
+
 ask  -g "$(git diff HEAD)"
 
 ### Simple Question and Reponse
