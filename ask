@@ -25,6 +25,7 @@ get_models_info() {
         echo "Error: Unable to retrieve model information. Check your API key and network connection." >&2
         exit 1
     fi
+    echo $RESPONSE
 }
 
 # ---------------------------
@@ -36,6 +37,7 @@ list_model_names() {
         echo "Error: Unable to retrieve model information. Check your API key and network connection." >&2
         exit 1
     fi
+    echo "$RESPONSE"
 }
 
 # ---------------------------
@@ -135,12 +137,12 @@ send_prompt_with_file_to_gemini() {
         PARTS_ARRAY+=("{\"inline_data\": {\"mime_type\":\"$MIME_TYPE\", \"data\":\"$FILE_BASE64\"}}")
     fi
 
-    local request_body
+    local REQ_BODY
     # Construct request
     if [ "$SEARCH" = "true" ]; then
-        request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}],\"tools\": [{\"google_search\": {}}]}"
+        REQ_BODY="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}],\"tools\": [{\"google_search\": {}}]}"
      else
-        request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
+        REQ_BODY="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
     fi
     TMP_FILE="$(mktemp)"
     echo "$REQ_BODY" > "$TMP_FILE"
