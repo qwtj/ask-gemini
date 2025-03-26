@@ -1,5 +1,13 @@
 #!/usr/bin/env zsh
 
+use_markdown_table="false"
+use_glow="false"
+prepend_guidelines="false"
+model="gemini-2.0-flash"  # Default model
+attached_File="" # Initialize attached_File
+VERBOSE="false"
+search_level="false"
+
 # Function to display help
 usage() {
     echo "Usage: $0 <prompt> [-m <model name>] [-g] [--glow] [--markdown] [-f <attached_File>]"
@@ -103,77 +111,75 @@ send_prompt_to_gemini() {
     fi
 }
 
+parse_arguments() {
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -m)
+                shift
+                case "$1" in
+                    gemini-2.0-flash) model="gemini-2.0-flash" ;;
+                    gemini-2.0-flash-lite) model="gemini-2.0-flash-lite" ;;
+                    gemini-1.5-flash) model="gemini-1.5-flash" ;;
+                    gemini-1.5-flash-8b) model="gemini-1.5-flash-8b" ;;
+                    gemini-1.5-pro) model="gemini-1.5-pro" ;;
+                    gemini-exp-1206) model="gemini-exp-1206";;
+                    "")
+                        echo "Error: -m requires a model name"
+                        exit 1
+                        ;;
+                    *)
+                        echo "Error: Unsupported model '$1'"
+                        echo "Supported models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash, gemini-1.5-flash-8b, gemini-1.5-pro"
+                        exit 1
+                        ;;
+                esac
+                ;;
+            --markdown) use_markdown_table="true" ;;
+            -g) use_glow="true" ;;
+            -f) # Handle the -f option
+                shift
+                attached_File="$1"
+                ;;
+            -s)
+                search_enabled="true"
+                ;;
+            -v)
+                VERBOSE="true"
+                ;;
+            -i)
+                get_models_info
+                exit
+                ;;
+            *)  prompt="$1"
+        esac
+        if [ $# -ge 1 ]; then
+            shift
+        fi
+    done
+}
+
+main() {
+
+    if [ -z "$PROMPT" ]; then
+        echo "Error: No prompt provided"
+        usage
+        exit 1
+    fi
+
+    if [ "$use_glow" = "true" ]; then
+        if ! send_prompt_to_gemini "$PROMPT" "$use_markdown_table" "$model" "$attached_File" "$search_enabled" | glow; then
+            exit 1 # Exit if send_prompt_to_gemini failed
+        fi
+    else
+        if ! send_prompt_to_gemini "$PROMPT" "$use_markdown_table" "$model" "$attached_File" "$search_enabled"; then
+            exit 1 # Exit if send_prompt_to_gemini failed
+        fi
+    fi
+}
+
 if [[ $# -eq 0  && (! -s /dev/stdin &&  ! -p /dev/stdin) ]]; then
     usage
     exit 1
 fi
-
-use_markdown_table="false"
-use_glow="false"
-prepend_guidelines="false"
-model="gemini-2.0-flash"  # Default model
-attached_File="" # Initialize attached_File
-VERBOSE="false"
-search_level="false"
-
-while [ "$#" -gt 0 ]; do
-    case "$1" in
-        -m)
-            shift
-            case "$1" in
-                gemini-2.0-flash) model="gemini-2.0-flash" ;;
-                gemini-2.0-flash-lite) model="gemini-2.0-flash-lite" ;;
-                gemini-1.5-flash) model="gemini-1.5-flash" ;;
-                gemini-1.5-flash-8b) model="gemini-1.5-flash-8b" ;;
-                gemini-1.5-pro) model="gemini-1.5-pro" ;;
-                gemini-exp-1206) model="gemini-exp-1206";;
-                "")
-                    echo "Error: -m requires a model name"
-                    exit 1
-                    ;;
-                *)
-                    echo "Error: Unsupported model '$1'"
-                    echo "Supported models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash, gemini-1.5-flash-8b, gemini-1.5-pro"
-                    exit 1
-                    ;;
-            esac
-            ;;
-        --markdown) use_markdown_table="true" ;;
-        -g) use_glow="true" ;;
-        -f) # Handle the -f option
-            shift
-            attached_File="$1"
-            ;;
-        -s)
-            search_enabled="true"
-            ;;
-        -v)
-            VERBOSE="true"
-            ;;
-        -i)
-            get_models_info
-            exit
-            ;;
-        *)  prompt="$1"
-    esac
-    if [ $# -ge 1 ]; then
-        shift
-    fi
-done
-
-if [ -z "$prompt" ]; then
-    echo "Error: No prompt provided"
-    usage
-    exit 1
-fi
-
-if [ "$use_glow" = "true" ]; then
-    if ! send_prompt_to_gemini "$PROMPT" "$use_markdown_table" "$model" "$attached_File" "$search_enabled" | glow; then
-        exit 1 # Exit if send_prompt_to_gemini failed
-    fi
-else
-    if ! send_prompt_to_gemini "$PROMPT" "$use_markdown_table" "$model" "$attached_File" "$search_enabled"; then
-        exit 1 # Exit if send_prompt_to_gemini failed
-    fi
-fi
-
+parse_arguments
+main
