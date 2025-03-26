@@ -20,7 +20,7 @@ usage() {
 # Function: get_models_info
 # ---------------------------
 get_models_info() {
-    local RESPONSE"$(curl -s https://generativelanguage.googleapis.com/v1beta/models\?key\=$GOOGLE_API_KEY | jq)"
+    local RESPONSE="$(curl -s https://generativelanguage.googleapis.com/v1beta/models\?key\=$GOOGLE_API_KEY | jq)"
     if [[ -z "$RESPONSE" ]]; then
         echo "Error: Unable to retrieve model information. Check your API key and network connection." >&2
         exit 1
