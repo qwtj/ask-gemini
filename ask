@@ -215,7 +215,7 @@ parse_arguments() {
         fi
     done
 
-    jq --null-input \
+    jq -R --null-input \
     --arg model "$MODEL" \
     --arg glow "$USE_GLOW" \
     --arg file "$ATTACHED_FILE" \
