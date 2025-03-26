@@ -70,8 +70,11 @@ send_gemini_request() {
         echo "Response saved to: ${RESPONSE_FILE}" >&2
     fi
     if ! echo "$RESPONSE" | base64 --decode | jq . >/dev/null 2>&1; then
-        echo "Invalid JSON response:" >&2
-        echo "$RESPONSE" | base64 --decode >&2
+        echo "Invalid JSON response:" >&2                                         
+        echo "Base64 Encoded:" >&2                                                
+        echo "$RESPONSE" >&2                                                      
+        echo "Base64 Decoded:" >&2                                                
+        echo "$RESPONSE" | base64 --decode >&2 
         return 1
     fi
 
