@@ -184,6 +184,14 @@ parse_arguments() {
 }
 
 main() {
+    # ---------------------------
+    # Environment Check
+    # ---------------------------
+    if [ -z "$GOOGLE_API_KEY" ]; then
+        echo "Error: GOOGLE_API_KEY environment variable is not set." >&2
+        exit 1
+    fi
+
     # Check that some input is provided
     # If no arguments are provided, check if stdin is not empty or a pipe
     # If stdin is empty and no arguments are provided, show usage
@@ -193,6 +201,9 @@ main() {
         exit 1
     fi
 
+    # ---------------------------
+    # Configuration & Constants
+    # ---------------------------
     local PARAMS=$(parse_arguments $@)
     local USE_MARKDOWN=$(echo "$PARAMS" | base64 --decode | jq -r '.use_markdown_table')
     local USE_GLOW=$(echo "$PARAMS" | base64 --decode | jq -r '.glow')
