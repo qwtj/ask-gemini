@@ -26,6 +26,8 @@ send_prompt_to_gemini() {
     local use_markdown_table="$2"
     local model="$3"
     local attached_File="$4"
+    local search_enabled="$5"
+
     local api_key="$GOOGLE_API_KEY"
     local api_version
 
@@ -52,8 +54,13 @@ send_prompt_to_gemini() {
         parts_array+=("{\"inline_data\": {\"mime_type\":\"$(file -b --mime-type "$attached_File")\", \"data\":\"$pdf_base64\"}}")
     fi
 
+    local request_body
     # Construct request
-    local request_body="{\"contents\":[{\"parts\":[${(j:, :)parts_array}]}]}"
+    if [ "$search_enabled" = "true" ]; then
+        request_body="{\"contents\":[{\"parts\":[${(j:, :)parts_array}]}],\"tools\": [{\"google_search\": {}}]}"
+     else
+        request_body="{\"contents\":[{\"parts\":[${(j:, :)parts_array}]}]}"
+    fi
 
     echo "$request_body" > ".tmp_file"
     # Send request and base64 encode response
@@ -68,13 +75,16 @@ send_prompt_to_gemini() {
         echo "$decoded_response" >&2
         return 1
     fi
-
-    local text_response=$(echo "$response" | base64 --decode | jq -r '.candidates[0].content.parts[0].text')
-    local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].finishReason')
-
-    if [ "$text_response" = null ]; then
+    
+    if [ "$text_response" = "null" ]; then
       echo "Finish Result: $(echo "$response" | base64 --decode | jq)"
+      return 1
     fi
+
+    local text_response=$(echo "$response" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
+    local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].finishReason' 2>/dev/null)
+
+    echo "$response" | base64 --decode | jq > /tmp/.tmp
 
     if [ -z "$text_response" ]; then
         echo "No text response received." >&2
@@ -94,7 +104,7 @@ send_prompt_to_gemini() {
     fi
 }
 
-if [ $# -eq 0  -a ! -p /dev/stdin ]; then
+if [[ $# -eq 0  && (! -s /dev/stdin &&  ! -p /dev/stdin) ]]; then
     usage
     exit 1
 fi
@@ -105,6 +115,7 @@ prepend_guidelines="false"
 model="gemini-2.0-flash"  # Default model
 attached_File="" # Initialize attached_File
 VERBOSE="false"
+search_level="false"
 
 guidelines="  •  Write a commit message; use rules: Plaintext only, no markdown, Focus on readability
 
@@ -123,6 +134,7 @@ while [ "$#" -gt 0 ]; do
                 gemini-1.5-flash) model="gemini-1.5-flash" ;;
                 gemini-1.5-flash-8b) model="gemini-1.5-flash-8b" ;;
                 gemini-1.5-pro) model="gemini-1.5-pro" ;;
+                gemini-exp-1206) model="gemini-exp-1206";;
                 "")
                     echo "Error: -m requires a model name"
                     exit 1
@@ -151,6 +163,9 @@ while [ "$#" -gt 0 ]; do
             shift
             attached_File="$1"
             ;;
+        -s)
+            search_enabled="true"
+            ;;
         -v)
             VERBOSE="true"
             ;;
@@ -165,10 +180,9 @@ while [ "$#" -gt 0 ]; do
     fi
 done
 
-if [ "$prepend_guidelines" = "false" -a -p /dev/stdin ]; then
-  while read line; do
-    prompt="$prompt$line
-"
+if [[ "$prepend_guidelines" == "false" && ( -p /dev/stdin || -s /dev/stdin ) ]]; then
+  while IFS= read -r line; do
+    prompt+="$line"
   done
 fi
 
@@ -184,12 +198,12 @@ if [ "$prepend_guidelines" = "true" ]; then
 fi
 
 if [ "$use_glow" = "true" ]; then
-    if ! send_prompt_to_gemini "$final_prompt" "$use_markdown_table" "$model" "$attached_File"; then
+    if ! send_prompt_to_gemini "$final_prompt" "$use_markdown_table" "$model" "$attached_File" "$search_enabled"; then
         exit 1 # Exit if send_prompt_to_gemini failed
     fi
     glow
 else
-    if ! send_prompt_to_gemini "$final_prompt" "$use_markdown_table" "$model" "$attached_File"; then
+    if ! send_prompt_to_gemini "$final_prompt" "$use_markdown_table" "$model" "$attached_File" "$search_enabled"; then
         exit 1 # Exit if send_prompt_to_gemini failed
     fi
 fi
