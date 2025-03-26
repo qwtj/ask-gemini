@@ -78,7 +78,7 @@ send_gemini_request() {
     local TEXT_RESPONSE=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
 
     if [ "$TEXT_RESPONSE" = "null" ]; then
-      echo "Finish Result: $(echo "$RESPONSE" | base64 --decode | jq)"
+A     echo "Finish Result: $(echo "$RESPONSE" | base64 --decode | jq)" >&2
       return 1
     fi
 
