@@ -90,7 +90,7 @@ send_gemini_request() {
 
 send_prompt_to_gemini() {
     local ENCODED_PROMPT="$1"
-    local SEARCH_ENABLED="$2"
+    local SEARCH="$2"
     local MODEL="$3"
     local VERBOSE="$4"
 
@@ -102,7 +102,7 @@ send_prompt_to_gemini() {
 
     local request_body
     # Construct request
-    if [ "$search_enabled" = "true" ]; then
+    if [ "$SEARCH" = "true" ]; then
         request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}],\"tools\": [{\"google_search\": {}}]}"
      else
         request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
@@ -113,7 +113,7 @@ send_prompt_to_gemini() {
 
 send_prompt_with_file_to_gemini() {
     local ENCODED_PROMPT="$1"
-    local SEARCH_ENABLED="$2"
+    local SEARCH="$2"
     local ATTACHED_FILE_PATH="$3"
     local MIME_TYPE="$(file -b --mime-type "$ATTACHED_FILE_PATH")"
     local MODEL="$4"
@@ -130,12 +130,12 @@ send_prompt_with_file_to_gemini() {
             return 1
         fi
         local FILE_BASE64=$(base64 -i "$ATTACHED_FILE_PATH" | tr -d '\r\n')
-        parts_array+=("{\"inline_data\": {\"mime_type\":\"$MIME_TYPE\", \"data\":\"$FILE_BASE64\"}}")
+        PARTS_ARRAY+=("{\"inline_data\": {\"mime_type\":\"$MIME_TYPE\", \"data\":\"$FILE_BASE64\"}}")
     fi
 
     local request_body
     # Construct request
-    if [ "$search_enabled" = "true" ]; then
+    if [ "$SEARCH" = "true" ]; then
         request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}],\"tools\": [{\"google_search\": {}}]}"
      else
         request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
