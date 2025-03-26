@@ -52,7 +52,7 @@ send_gemini_request() {
     local response=$(curl -s -X POST "$API_URL" \
         -H "Content-Type: application/json" \
         --data-binary "@.tmp_file" | base64)
-    [[ ! "VERBOSE" = "true" ]] && rm .tmp_file 
+    [[ ! "$VERBOSE" = "true" ]] && rm .tmp_file 
     [[ "$VERBOSE" = "true" ]] && echo "$response" | base64 --decode | jq > /tmp/.tmp
     if ! echo "$response" | base64 --decode | jq . >/dev/null 2>&1; then
         echo "Invalid JSON response:" >&2
@@ -68,7 +68,7 @@ send_gemini_request() {
     local text_response=$(echo "$response" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
     local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].finishReason' 2>/dev/null)
 
-    [[ "VERBOSE" = "true" ]] && echo "$response" | base64 --decode | jq > /tmp/.tmp
+    [[ "$VERBOSE" = "true" ]] && echo "$response" | base64 --decode | jq > /tmp/.tmp
 
     if [ -z "$text_response" ]; then
         echo "No text response received." >&2
