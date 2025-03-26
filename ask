@@ -25,7 +25,7 @@ get_models_info() {
         echo "Error: Unable to retrieve model information. Check your API key and network connection." >&2
         exit 1
     fi
-    echo $RESPONSE
+    echo "$RESPONSE"
 }
 
 # ---------------------------
