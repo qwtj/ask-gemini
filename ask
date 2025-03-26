@@ -37,6 +37,7 @@ list_model_names() {
 send_gemini_request() {
     local MODEL="$1"
     local VERBOSE="$2"
+    local REQ_FILE="$3"
     # Default API version not version 1.5 or below
     local API_VERSION="v1beta" 
 
@@ -50,9 +51,15 @@ send_gemini_request() {
     # Send request and base64 encode response
     local RESPONSE=$(curl -s -X POST "$API_URL" \
         -H "Content-Type: application/json" \
-        --data-binary "@.tmp_file" | base64)
-    [[ ! "$VERBOSE" = "true" ]] && rm .tmp_file 
-    [[ "$VERBOSE" = "true" ]] && echo "$RESPONSE" | base64 --decode | jq > /tmp/.tmp
+        --data-binary "@${REQ_FILE}" | base64)
+    if [[ "$VERBOSE" = "false" ]]; then
+        rm "${REQ_FILE}"
+    else
+        RESPONSE_FILE="$(mktemp)"
+        echo "$RESPONSE" | base64 --decode | jq > "$RESPONSE_FILE"
+        echo "\nRequest saved: ${REQ_FILE}" >&2
+        echo "Response saved to: ${RESPONSE_FILE}" >&2
+    fi
     if ! echo "$RESPONSE" | base64 --decode | jq . >/dev/null 2>&1; then
         echo "Invalid JSON response:" >&2
         echo "$RESPONSE" | base64 --decode >&2
@@ -66,8 +73,7 @@ send_gemini_request() {
       return 1
     fi
 
-    [[ "$VERBOSE" = "true" ]] && echo "$RESPONSE" | base64 --decode | jq > /tmp/.tmp
-
+    # Check if the response is empty or null
     if [ -z "$TEXT_RESPONSE" ]; then
         echo "No text response received." >&2
         return 1
@@ -88,15 +94,16 @@ send_prompt_to_gemini() {
 
     [[ "$VERBOSE" = "true" ]] && echo "Adding prompt to request body..." >&2
 
-    local request_body
+    local REQ_BODY
     # Construct request
     if [ "$SEARCH" = "true" ]; then
-        request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}],\"tools\": [{\"google_search\": {}}]}"
+        REQ_BODY="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}],\"tools\": [{\"google_search\": {}}]}"
      else
-        request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
+        REQ_BODY="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
     fi
-    echo "$request_body" > ".tmp_file"
-    send_gemini_request "$MODEL" "$VERBOSE"
+    TMP_FILE="$(mktemp)"
+    echo "$REQ_BODY" > "$TMP_FILE"
+    send_gemini_request "$MODEL" "$VERBOSE"  "$TMP_FILE"
 }
 
 send_prompt_with_file_to_gemini() {
@@ -128,8 +135,9 @@ send_prompt_with_file_to_gemini() {
      else
         request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
     fi
-    echo "$request_body" > ".tmp_file"
-    send_gemini_request "$MODEL" "$VERBOSE"
+    TMP_FILE="$(mktemp)"
+    echo "$REQ_BODY" > "$TMP_FILE"
+    send_gemini_request "$MODEL" "$VERBOSE" "$TMP_FILE"
 }
 
 # ---------------------------
