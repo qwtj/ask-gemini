@@ -64,7 +64,7 @@ send_gemini_request() {
     if [[ "$VERBOSE" = "false" ]]; then
         rm "${REQ_FILE}"
     else
-        RESPONSE_FILE="$(mktemp)"
+        RESPONSE_FILE="$(mktemp -t "ask.google")"
         echo "$RESPONSE" | base64 --decode | jq > "$RESPONSE_FILE"
         echo "\nRequest saved: ${REQ_FILE}" >&2
         echo "Response saved to: ${RESPONSE_FILE}" >&2
@@ -110,7 +110,7 @@ send_prompt_to_gemini() {
      else
         REQ_BODY="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
     fi
-    TMP_FILE="$(mktemp)"
+    TMP_FILE="$(mktemp -t "ask.google")"
     echo "$REQ_BODY" > "$TMP_FILE"
     send_gemini_request "$MODEL" "$VERBOSE"  "$TMP_FILE"
 }
@@ -144,7 +144,7 @@ send_prompt_with_file_to_gemini() {
      else
         REQ_BODY="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
     fi
-    TMP_FILE="$(mktemp)"
+    TMP_FILE="$(mktemp -t "ask.google")"
     echo "$REQ_BODY" > "$TMP_FILE"
     send_gemini_request "$MODEL" "$VERBOSE" "$TMP_FILE"
 }
@@ -233,6 +233,11 @@ parse_arguments() {
 }
 
 main() {
+    # Clean up any temporary files on exit
+    for i in $(find /var/folders -regex ".*ask\.google.*" 2>/dev/null); do
+        rm "$i" 2>/dev/null
+    done
+
     # ---------------------------
     # Environment Check
     # ---------------------------
