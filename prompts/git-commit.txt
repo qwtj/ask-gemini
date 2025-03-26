@@ -13,3 +13,5 @@ Formatting rules for the commit message:
 	•	Use bullet points or short lines in the body if it improves clarity, but do not exceed 72 characters per line.
 
 Only return the properly formatted commit message.
+
+--- GIT diff
