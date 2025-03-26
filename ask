@@ -66,7 +66,7 @@ send_gemini_request() {
       echo "Finish Result: $(echo "$RESPONSE" | base64 --decode | jq)"
       return 1
     fi
-    
+
     [[ "$VERBOSE" = "true" ]] && echo "$RESPONSE" | base64 --decode | jq > /tmp/.tmp
 
     if [ -z "$TEXT_RESPONSE" ]; then
@@ -112,10 +112,10 @@ send_prompt_with_file_to_gemini() {
     local PARTS_ARRAY=()
     PARTS_ARRAY+=("{\"inline_data\": {\"mime_type\":\"text/plain\", \"data\":\"$ENCODED_PROMPT\"}}")
 
-     # Add PDF file if provided
+     # Add file if provided
     if [ -n "$ATTACHED_FILE_PATH" ]; then
         if [ ! -f "$ATTACHED_FILE_PATH" ]; then
-            echo "Error: PDF file not found: $ATTACHED_FILE_PATH" >&2
+            echo "Error: File not found: $ATTACHED_FILE_PATH" >&2
             return 1
         fi
         local FILE_BASE64=$(base64 -i "$ATTACHED_FILE_PATH" | tr -d '\r\n')
