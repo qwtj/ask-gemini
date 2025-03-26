@@ -292,10 +292,10 @@ main() {
 
     if [[ -n "$ATTACHED_FILE" ]]; then
         [[ "$VERBOSE" = "true" ]] && echo "Sending prompt with attached file to Gemini API..." >&2
-        RESPONSE="$(send_prompt_with_file_to_gemini "$(echo $PROMPT | base64)" "$SEARCH" "$ATTACHED_FILE" "$MODEL" "$VERBOSE")"
+        RESPONSE="$(send_prompt_with_file_to_gemini "$(echo "$PROMPT" | base64)" "$SEARCH" "$ATTACHED_FILE" "$MODEL" "$VERBOSE")"
     else
         [ "$VERBOSE" = "true" ] && echo "Sending prompt to Gemini API..." >&2
-        RESPONSE="$(send_prompt_to_gemini "$(echo $PROMPT | base64)" "$SEARCH" "$MODEL" "$VERBOSE")"
+        RESPONSE="$(send_prompt_to_gemini "$(echo "$PROMPT" | base64)" "$SEARCH" "$MODEL" "$VERBOSE")"
     fi
 
     # If glow is enabled, pipe the output to glow
