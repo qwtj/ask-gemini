@@ -32,55 +32,28 @@ list_model_names() {
     curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_API_KEY" | jq -r '.models[].name' | sed 's/models\///g'
 }
 
-send_prompt_to_gemini() {
-    local PROMPT="$1"
-    local use_markdown_table="$2"
-    local model="$3"
-    local attached_File="$4"
-    local search_enabled="$5"
+# ---------------------------
+# Function: send_gemini_request
+# ---------------------------
+send_gemini_request() {
+    local MODEL="$1"
+    local VERBOSE="$2"
+    # Default API version not version 1.5 or below
+    local API_VERSION="v1beta" 
 
-    local api_key="$GOOGLE_API_KEY"
-    local api_version
-
-    case "$model" in
+    case "$MODEL" in
         gemini-1.5-*) api_version="v1" ;;
-        *) api_version="v1beta" ;;
+        *) ;;
     esac
+    local API_URL="https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL}:generateContent?key=$GOOGLE_API_KEY"
 
-    local api_url="https://generativelanguage.googleapis.com/${api_version}/models/${model}:generateContent?key=$api_key"
-
-    local parts_array=()
-
-    # Add prompt
-    local encoded_prompt=$(echo -n "$prompt" | base64)
-    parts_array+=("{\"inline_data\": {\"mime_type\":\"text/plain\", \"data\":\"$encoded_prompt\"}}")
-
-    # Add PDF file if provided
-    if [ -n "$attached_File" ]; then
-        if [ ! -f "$attached_File" ]; then
-            echo "Error: PDF file not found: $attached_File" >&2
-            return 1
-        fi
-        local pdf_base64=$(base64 -i "$attached_File" | tr -d '\r\n')
-        parts_array+=("{\"inline_data\": {\"mime_type\":\"$(file -b --mime-type "$attached_File")\", \"data\":\"$pdf_base64\"}}")
-    fi
-
-    local request_body
-    # Construct request
-    if [ "$search_enabled" = "true" ]; then
-        request_body="{\"contents\":[{\"parts\":[${(j:, :)parts_array}]}],\"tools\": [{\"google_search\": {}}]}"
-     else
-        request_body="{\"contents\":[{\"parts\":[${(j:, :)parts_array}]}]}"
-    fi
-
-    echo "$request_body" > ".tmp_file"
+    [[ "$VERBOSE" = "true" ]] && echo "\nSending Request:\n\n\tAPI URL: $API_URL" >&2
     # Send request and base64 encode response
-    local response=$(curl -s -X POST "$api_url" \
+    local response=$(curl -s -X POST "$API_URL" \
         -H "Content-Type: application/json" \
         --data-binary "@.tmp_file" | base64)
-
-    #rm .tmp_file
-
+    [[ ! "VERBOSE" = "true" ]] && rm .tmp_file 
+    [[ "$VERBOSE" = "true" ]] && echo "$response" | base64 --decode | jq > /tmp/.tmp
     if ! echo "$response" | base64 --decode | jq . >/dev/null 2>&1; then
         echo "Invalid JSON response:" >&2
         echo "$decoded_response" >&2
@@ -95,7 +68,7 @@ send_prompt_to_gemini() {
     local text_response=$(echo "$response" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
     local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].finishReason' 2>/dev/null)
 
-    echo "$response" | base64 --decode | jq > /tmp/.tmp
+    [[ "VERBOSE" = "true" ]] && echo "$response" | base64 --decode | jq > /tmp/.tmp
 
     if [ -z "$text_response" ]; then
         echo "No text response received." >&2
@@ -111,10 +84,69 @@ send_prompt_to_gemini() {
         echo "|---------------|"
         echo "| $safety_ratings |"
     else
-        echo "$text_response"
+        echo "$text_response" | base64
     fi
 }
 
+send_prompt_to_gemini() {
+    local ENCODED_PROMPT="$1"
+    local SEARCH_ENABLED="$2"
+    local MODEL="$3"
+    local VERBOSE="$4"
+
+     # Add prompt
+    local PARTS_ARRAY=()
+    PARTS_ARRAY+=("{\"inline_data\": {\"mime_type\":\"text/plain\", \"data\":\"$ENCODED_PROMPT\"}}")
+
+    [[ "$VERBOSE" = "true" ]] && echo "Adding prompt to request body..." >&2
+
+    local request_body
+    # Construct request
+    if [ "$search_enabled" = "true" ]; then
+        request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}],\"tools\": [{\"google_search\": {}}]}"
+     else
+        request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
+    fi
+    echo "$request_body" > ".tmp_file"
+    send_gemini_request "$MODEL" "$VERBOSE"
+}
+
+send_prompt_with_file_to_gemini() {
+    local ENCODED_PROMPT="$1"
+    local SEARCH_ENABLED="$2"
+    local ATTACHED_FILE_PATH="$3"
+    local MIME_TYPE="$(file -b --mime-type "$ATTACHED_FILE_PATH")"
+    local MODEL="$4"
+    local VERBOSE="$5"
+
+    # Add prompt
+    local PARTS_ARRAY=()
+    PARTS_ARRAY+=("{\"inline_data\": {\"mime_type\":\"text/plain\", \"data\":\"$ENCODED_PROMPT\"}}")
+
+     # Add PDF file if provided
+    if [ -n "$ATTACHED_FILE_PATH" ]; then
+        if [ ! -f "$ATTACHED_FILE_PATH" ]; then
+            echo "Error: PDF file not found: $ATTACHED_FILE_PATH" >&2
+            return 1
+        fi
+        local FILE_BASE64=$(base64 -i "$ATTACHED_FILE_PATH" | tr -d '\r\n')
+        parts_array+=("{\"inline_data\": {\"mime_type\":\"$MIME_TYPE\", \"data\":\"$FILE_BASE64\"}}")
+    fi
+
+    local request_body
+    # Construct request
+    if [ "$search_enabled" = "true" ]; then
+        request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}],\"tools\": [{\"google_search\": {}}]}"
+     else
+        request_body="{\"contents\":[{\"parts\":[${(j:, :)PARTS_ARRAY}]}]}"
+    fi
+    echo "$request_body" > ".tmp_file"
+    send_gemini_request "$MODEL" "$VERBOSE"
+}
+
+# ---------------------------
+# Function: parse_arguments
+# ---------------------------
 parse_arguments() {
     local USE_MARKDOWN="false"
     local USE_GLOW="false"
@@ -152,13 +184,6 @@ parse_arguments() {
                     echo "$valid_models"
                     exit 1
                 fi
-                ;;
-            *)
-                echo "Error: Unsupported model '$1'"
-                echo "Supported models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash, gemini-1.5-flash-8b, gemini-1.5-pro"
-                exit 1
-                ;;
-                esac
                 ;;
             --markdown) USE_MARKDOWN="true" ;;
             -g) USE_GLOW="true" ;;
@@ -223,6 +248,9 @@ main() {
     local VERBOSE=$(echo "$PARAMS" | base64 --decode | jq -r '.verbose')
     local SEARCH=$(echo "$PARAMS" | base64 --decode | jq -r '.search_enabled')
     local PROMPT=$(echo "$PARAMS" | base64 --decode | jq -r '.prompt')
+
+    [ "$VERBOSE" = "true" ] && echo "\nParsed parameters: $(echo "$PARAMS" | base64 --decode)\n" >&2
+
     if [[ -s /dev/stdin || -p /dev/stdin ]]; then
         if [[ -z "$PROMPT" ]]; then
             PROMPT="$(cat -)"
@@ -237,14 +265,20 @@ main() {
         exit 1
     fi
 
-    if [ "$use_glow" = "true" ]; then
-        if ! send_prompt_to_gemini "$PROMPT" "$USE_MARKDOWN" "$MODEL" "$ATTACHED_FILE" "$SEARCH" | glow; then
-            exit 1 # Exit if send_prompt_to_gemini failed
-        fi
+    if [[ -n "$ATTACHED_FILE" ]]; then
+        [[ "$VERBOSE" = "true" ]] && echo "Sending prompt with attached file to Gemini API..." >&2
+        response="$(send_prompt_with_file_to_gemini "$(echo $PROMPT | base64)" "$SEARCH" "$ATTACHED_FILE" "$MODEL" "$VERBOSE")"
     else
-        if ! send_prompt_to_gemini "$PROMPT" "$USE_MARKDOWN" "$MODEL" "$ATTACHED_FILE" "$SEARCH"; then
-            exit 1 # Exit if send_prompt_to_gemini failed
-        fi
+        [ "$VERBOSE" = "true" ] && echo "Sending prompt to Gemini API..." >&2
+        response="$(send_prompt_to_gemini "$(echo $PROMPT | base64)" "$SEARCH" "$MODEL" "$VERBOSE")"
+    fi
+
+    # If glow is enabled, pipe the output to glow
+    if [ "$USE_GLOW" = "true" ]; then
+        echo "$response" | base64 --decode | glow
+    else
+        [ "$VERBOSE" = "true" ] && echo -n "\nMessage:\n\n\t" >&2
+        echo "$response" | base64 --decode
     fi
 }
 
