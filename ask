@@ -1,13 +1,5 @@
 #!/usr/bin/env zsh
 
-use_markdown_table="false"
-use_glow="false"
-prepend_guidelines="false"
-model="gemini-2.0-flash"  # Default model
-attached_File="" # Initialize attached_File
-VERBOSE="false"
-search_level="false"
-
 # Function to display help
 usage() {
     echo "Usage: $0 <prompt> [-m <model name>] [-g] [--glow] [--markdown] [-f <attached_File>]"
@@ -29,7 +21,7 @@ get_models_info() {
 }
 
 send_prompt_to_gemini() {
-    local prompt="$1"
+    local PROMPT="$1"
     local use_markdown_table="$2"
     local model="$3"
     local attached_File="$4"
@@ -150,7 +142,7 @@ parse_arguments() {
                 get_models_info
                 exit
                 ;;
-            *)  prompt="$1"
+            *)  PROMPT="$1"
         esac
         if [ $# -ge 1 ]; then
             shift
@@ -159,7 +151,24 @@ parse_arguments() {
 }
 
 main() {
+    local USE_MARKDOWN="false"
+    local USE_GLOW="false"
+    local MODEL="gemini-2.0-flash"  # Default model
+    local ATTACHED_FILE="" # Initialize attached_File
+    local VERBOSE="false"
+    local SEARCH="false"
+    local PROMPT=""
 
+    # Check that some input is provided
+    # If no arguments are provided, check if stdin is not empty or a pipe
+    # If stdin is empty and no arguments are provided, show usage
+    # and exit with an error
+    if [[ $# -eq 0  && (! -s /dev/stdin &&  ! -p /dev/stdin) ]]; then
+        usage
+        exit 1
+    fi
+
+    parse_arguments
     if [ -z "$PROMPT" ]; then
         echo "Error: No prompt provided"
         usage
@@ -167,19 +176,17 @@ main() {
     fi
 
     if [ "$use_glow" = "true" ]; then
-        if ! send_prompt_to_gemini "$PROMPT" "$use_markdown_table" "$model" "$attached_File" "$search_enabled" | glow; then
+        if ! send_prompt_to_gemini "$PROMPT" "$USE_MARKDOWN" "$MODEL" "$ATTACHED_FILE" "$SEARCH" | glow; then
             exit 1 # Exit if send_prompt_to_gemini failed
         fi
     else
-        if ! send_prompt_to_gemini "$PROMPT" "$use_markdown_table" "$model" "$attached_File" "$search_enabled"; then
+        if ! send_prompt_to_gemini "$PROMPT" "$USE_MARKDOWN" "$MODEL" "$ATTACHED_FILE" "$SEARCH"; then
             exit 1 # Exit if send_prompt_to_gemini failed
         fi
     fi
 }
 
-if [[ $# -eq 0  && (! -s /dev/stdin &&  ! -p /dev/stdin) ]]; then
-    usage
-    exit 1
-fi
-parse_arguments
+# ---------------------------
+# Entry Point
+# ---------------------------
 main
