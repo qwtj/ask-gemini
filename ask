@@ -17,11 +17,19 @@ usage() {
     exit 1
 }
 
-#!/usr/bin/env zsh
-
+# ---------------------------
+# Function: get_models_info
+# ---------------------------
 get_models_info() {
     local api_key="$GOOGLE_API_KEY"
     curl -s https://generativelanguage.googleapis.com/v1beta/models\?key\=$api_key | jq
+}
+
+# ---------------------------
+# Function: list_model_names
+# ---------------------------
+list_model_names() {
+    curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_API_KEY" | jq -r '.models[].name' | sed 's/models\///g'
 }
 
 send_prompt_to_gemini() {
@@ -131,22 +139,25 @@ parse_arguments() {
                 ;;
             -m)
                 shift
-                case "$1" in
-                    gemini-2.0-flash) MODEL="gemini-2.0-flash" ;;
-                    gemini-2.0-flash-lite) MODEL="gemini-2.0-flash-lite" ;;
-                    gemini-1.5-flash) MODEL="gemini-1.5-flash" ;;
-                    gemini-1.5-flash-8b) MODEL="gemini-1.5-flash-8b" ;;
-                    gemini-1.5-pro) MODEL="gemini-1.5-pro" ;;
-                    gemini-exp-1206) MODEL="gemini-exp-1206";;
-                    "")
-                        echo "Error: -m requires a model name"
-                        exit 1
-                        ;;
-                    *)
-                        echo "Error: Unsupported model '$1'"
-                        echo "Supported models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash, gemini-1.5-flash-8b, gemini-1.5-pro"
-                        exit 1
-                        ;;
+                if [ -z "$1" ]; then
+                    echo "Error: -m requires a model name" >&2
+                    print_usage
+                fi
+                # Validate the provided model against the list from the API.
+                valid_models=$(list_model_names)
+                if echo "$valid_models" | grep -Fxq "$1"; then
+                    MODEL="$1"
+                else
+                    echo "Error: Unsupported model '$1'. Valid models are:" >&2
+                    echo "$valid_models"
+                    exit 1
+                fi
+                ;;
+            *)
+                echo "Error: Unsupported model '$1'"
+                echo "Supported models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash, gemini-1.5-flash-8b, gemini-1.5-pro"
+                exit 1
+                ;;
                 esac
                 ;;
             --markdown) USE_MARKDOWN="true" ;;
