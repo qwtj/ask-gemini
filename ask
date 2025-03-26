@@ -209,10 +209,16 @@ main() {
     # ---------------------------
     # Environment Check
     # ---------------------------
-    if [[ -z "$GOOGLE_API_KEY" || -z "$(jq --null-input '{}')" ]]; then
-        echo "\nError:" >&2
-        echo "\tGOOGLE_API_KEY environment variable may not be set." >&2
-        echo "\tCheck that jq is installed.\n" >&2
+    if [[ -z "$GOOGLE_API_KEY" ]]; then
+        echo "\nError: GOOGLE_API_KEY environment variable may not be set." >&2
+        exit 1
+    fi
+    if [[ -z "$(jq --null-input '{}')" ]]; then
+        echo "\nError: Check jq is installed and accessible.\n" >&2
+        exit 1
+    fi
+    if [[ -z "$(which curl)" ]]; then
+        echo "\nError: Check curl is installed and accessible.\n" >&2
         exit 1
     fi
 
