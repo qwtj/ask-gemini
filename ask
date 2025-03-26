@@ -58,15 +58,15 @@ send_gemini_request() {
         echo "$RESPONSE" | base64 --decode >&2
         return 1
     fi
-    
-    if [ "$TEXT_RESPONSE" = "null" ]; then
-      echo "Finish Result: $(echo "$RESPONSE" | base64 --decode | jq)"
-      return 1
-    fi
 
     local TEXT_RESPONSE=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
     local safety_ratings=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].finishReason' 2>/dev/null)
 
+    if [ "$TEXT_RESPONSE" = "null" ]; then
+      echo "Finish Result: $(echo "$RESPONSE" | base64 --decode | jq)"
+      return 1
+    fi
+    
     [[ "$VERBOSE" = "true" ]] && echo "$RESPONSE" | base64 --decode | jq > /tmp/.tmp
 
     if [ -z "$TEXT_RESPONSE" ]; then
