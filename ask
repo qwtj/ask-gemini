@@ -266,13 +266,13 @@ main() {
     # ---------------------------
     # Configuration & Constants
     # ---------------------------
-    local PARAMS=$(parse_arguments $@)
-    local USE_GLOW=$(echo "$PARAMS" | base64 --decode | jq -r '.glow')
-    local MODEL=$(echo "$PARAMS" | base64 --decode | jq -r '.model')
-    local ATTACHED_FILE=$(echo "$PARAMS" | base64 --decode | jq -r '.attached_File')
-    local VERBOSE=$(echo "$PARAMS" | base64 --decode | jq -r '.verbose')
-    local SEARCH=$(echo "$PARAMS" | base64 --decode | jq -r '.search_enabled')
-    local PROMPT=$(echo "$PARAMS" | base64 --decode | jq -r '.prompt')
+    local PARAMS="$(parse_arguments $@)"
+    local USE_GLOW="$(echo "$PARAMS" | base64 --decode | jq -r '.glow')"
+    local MODEL="$(echo "$PARAMS" | base64 --decode | jq -r '.model')"
+    local ATTACHED_FILE="$(echo "$PARAMS" | base64 --decode | jq -r '.attached_File')"
+    local VERBOSE="$(echo "$PARAMS" | base64 --decode | jq -r '.verbose')"
+    local SEARCH="$(echo "$PARAMS" | base64 --decode | jq -r '.search_enabled')"
+    local PROMPT="$(echo "$PARAMS" | base64 --decode | jq -r '.prompt')"
 
     [ "$VERBOSE" = "true" ] && echo "\nParsed parameters: $(echo "$PARAMS" | base64 --decode)\n" >&2
 
