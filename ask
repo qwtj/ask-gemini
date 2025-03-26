@@ -104,17 +104,25 @@ send_prompt_to_gemini() {
 }
 
 parse_arguments() {
+    local USE_MARKDOWN="false"
+    local USE_GLOW="false"
+    local MODEL="gemini-2.0-flash"  # Default model
+    local ATTACHED_FILE="" # Initialize attached_File
+    local VERBOSE="false"
+    local SEARCH="false"
+    local PROMPT=""
+
     while [ "$#" -gt 0 ]; do
         case "$1" in
             -m)
                 shift
                 case "$1" in
-                    gemini-2.0-flash) model="gemini-2.0-flash" ;;
-                    gemini-2.0-flash-lite) model="gemini-2.0-flash-lite" ;;
-                    gemini-1.5-flash) model="gemini-1.5-flash" ;;
-                    gemini-1.5-flash-8b) model="gemini-1.5-flash-8b" ;;
-                    gemini-1.5-pro) model="gemini-1.5-pro" ;;
-                    gemini-exp-1206) model="gemini-exp-1206";;
+                    gemini-2.0-flash) MODEL="gemini-2.0-flash" ;;
+                    gemini-2.0-flash-lite) MODEL="gemini-2.0-flash-lite" ;;
+                    gemini-1.5-flash) MODEL="gemini-1.5-flash" ;;
+                    gemini-1.5-flash-8b) MODEL="gemini-1.5-flash-8b" ;;
+                    gemini-1.5-pro) MODEL="gemini-1.5-pro" ;;
+                    gemini-exp-1206) MODEL="gemini-exp-1206";;
                     "")
                         echo "Error: -m requires a model name"
                         exit 1
@@ -126,14 +134,14 @@ parse_arguments() {
                         ;;
                 esac
                 ;;
-            --markdown) use_markdown_table="true" ;;
-            -g) use_glow="true" ;;
+            --markdown) USE_MARKDOWN="true" ;;
+            -g) USE_GLOW="true" ;;
             -f) # Handle the -f option
                 shift
-                attached_File="$1"
+                ATTACHED_FILE="$1"
                 ;;
             -s)
-                search_enabled="true"
+                SEARCH="true"
                 ;;
             -v)
                 VERBOSE="true"
@@ -148,27 +156,45 @@ parse_arguments() {
             shift
         fi
     done
+
+    echo '{
+        "use_markdown_table": "'"$USE_MARKDOWN"'", 
+        "model": "'"$MODEL"'",
+        "glow": "'"$USE_GLOW"'",
+        "attached_File": "'"$ATTACHED_FILE"'", 
+        "search_enabled": "'"$SEARCH"'", 
+        "verbose": "'"$VERBOSE"'", 
+        "prompt": "'"$PROMPT"'" 
+    }' | jq
 }
 
 main() {
-    local USE_MARKDOWN="false"
-    local USE_GLOW="false"
-    local MODEL="gemini-2.0-flash"  # Default model
-    local ATTACHED_FILE="" # Initialize attached_File
-    local VERBOSE="false"
-    local SEARCH="false"
-    local PROMPT=""
-
     # Check that some input is provided
     # If no arguments are provided, check if stdin is not empty or a pipe
     # If stdin is empty and no arguments are provided, show usage
     # and exit with an error
-    if [[ $# -eq 0  && (! -s /dev/stdin &&  ! -p /dev/stdin) ]]; then
+    if [[ $# -eq 0  && ! -s /dev/stdin &&  ! -p /dev/stdin ]]; then
         usage
         exit 1
     fi
 
-    parse_arguments
+    local PARAMS=$(parse_arguments $@)
+    local USE_MARKDOWN=$(echo "$PARAMS" | jq -r '.use_markdown_table')
+    local USE_GLOW=$(echo "$PARAMS" | jq -r '.glow')
+    local MODEL=$(echo "$PARAMS" | jq -r '.model')
+    local ATTACHED_FILE=$(echo "$PARAMS" | jq -r '.attached_File')
+    local VERBOSE=$(echo "$PARAMS" | jq -r '.verbose')
+    local SEARCH=$(echo "$PARAMS" | jq -r '.search_enabled')
+    local PROMPT=$(echo "$PARAMS" | jq -r '.prompt')
+
+    if [[ -s /dev/stdin || -p /dev/stdin ]]; then
+        if [[ -z "$PROMPT" ]]; then
+            PROMPT="$(cat -)"
+        else
+            PROMPT="$PROMPT\n$(cat -)"
+        fi
+    fi
+
     if [ -z "$PROMPT" ]; then
         echo "Error: No prompt provided"
         usage
@@ -189,4 +215,4 @@ main() {
 # ---------------------------
 # Entry Point
 # ---------------------------
-main
+main $@
