@@ -60,7 +60,6 @@ send_gemini_request() {
     fi
 
     local TEXT_RESPONSE=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
-    local safety_ratings=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].finishReason' 2>/dev/null)
 
     if [ "$TEXT_RESPONSE" = "null" ]; then
       echo "Finish Result: $(echo "$RESPONSE" | base64 --decode | jq)"
