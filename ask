@@ -41,7 +41,7 @@ send_gemini_request() {
     local API_VERSION="v1beta" 
 
     case "$MODEL" in
-        gemini-1.5-*) api_version="v1" ;;
+        gemini-1.5-*) API_VERSION="v1" ;;
         *) ;;
     esac
     local API_URL="https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL}:generateContent?key=$GOOGLE_API_KEY"
@@ -52,7 +52,7 @@ send_gemini_request() {
         -H "Content-Type: application/json" \
         --data-binary "@.tmp_file" | base64)
     [[ ! "$VERBOSE" = "true" ]] && rm .tmp_file 
-    [[ "$VERBOSE" = "true" ]] && echo "$response" | base64 --decode | jq > /tmp/.tmp
+    [[ "$VERBOSE" = "true" ]] && echo "$RESPONSE" | base64 --decode | jq > /tmp/.tmp
     if ! echo "$RESPONSE" | base64 --decode | jq . >/dev/null 2>&1; then
         echo "Invalid JSON response:" >&2
         echo "$RESPONSE" | base64 --decode >&2
@@ -161,7 +161,7 @@ parse_arguments() {
                 shift
                 if [ -z "$1" ]; then
                     echo "Error: -m requires a model name" >&2
-                    print_usage
+                    usage
                 fi
                 # Validate the provided model against the list from the API.
                 valid_models=$(list_model_names)
@@ -260,18 +260,18 @@ main() {
 
     if [[ -n "$ATTACHED_FILE" ]]; then
         [[ "$VERBOSE" = "true" ]] && echo "Sending prompt with attached file to Gemini API..." >&2
-        response="$(send_prompt_with_file_to_gemini "$(echo $PROMPT | base64)" "$SEARCH" "$ATTACHED_FILE" "$MODEL" "$VERBOSE")"
+        RESPONSE="$(send_prompt_with_file_to_gemini "$(echo $PROMPT | base64)" "$SEARCH" "$ATTACHED_FILE" "$MODEL" "$VERBOSE")"
     else
         [ "$VERBOSE" = "true" ] && echo "Sending prompt to Gemini API..." >&2
-        response="$(send_prompt_to_gemini "$(echo $PROMPT | base64)" "$SEARCH" "$MODEL" "$VERBOSE")"
+        RESPONSE="$(send_prompt_to_gemini "$(echo $PROMPT | base64)" "$SEARCH" "$MODEL" "$VERBOSE")"
     fi
 
     # If glow is enabled, pipe the output to glow
     if [ "$USE_GLOW" = "true" ]; then
-        echo "$response" | base64 --decode | glow
+        echo "$RESPONSE" | base64 --decode | glow
     else
         [ "$VERBOSE" = "true" ] && echo -n "\nMessage:\n\n\t" >&2
-        echo "$response" | base64 --decode
+        echo "$RESPONSE" | base64 --decode
     fi
 }
 
