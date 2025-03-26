@@ -71,7 +71,7 @@ send_prompt_to_gemini() {
         -H "Content-Type: application/json" \
         --data-binary "@.tmp_file" | base64)
 
-    rm .tmp_file
+    #rm .tmp_file
 
     if ! echo "$response" | base64 --decode | jq . >/dev/null 2>&1; then
         echo "Invalid JSON response:" >&2
@@ -123,7 +123,8 @@ parse_arguments() {
                     echo "Error: -p requires a prompt"
                     exit 1
                 fi
-                PROMPT="$1"
+                PROMPT="$(cat "$1")"
+                shift
                 ;;
             -h|--help)
                 usage
@@ -171,15 +172,15 @@ parse_arguments() {
         fi
     done
 
-    echo '{
+    jq --null-input '{
         "use_markdown_table": "'"$USE_MARKDOWN"'", 
         "model": "'"$MODEL"'",
         "glow": "'"$USE_GLOW"'",
         "attached_File": "'"$ATTACHED_FILE"'", 
         "search_enabled": "'"$SEARCH"'", 
         "verbose": "'"$VERBOSE"'", 
-        "prompt": "'"$PROMPT"'" 
-    }' | jq
+        "prompt": "'"$PROMPT"'"
+    }' | base64
 }
 
 main() {
@@ -193,14 +194,13 @@ main() {
     fi
 
     local PARAMS=$(parse_arguments $@)
-    local USE_MARKDOWN=$(echo "$PARAMS" | jq -r '.use_markdown_table')
-    local USE_GLOW=$(echo "$PARAMS" | jq -r '.glow')
-    local MODEL=$(echo "$PARAMS" | jq -r '.model')
-    local ATTACHED_FILE=$(echo "$PARAMS" | jq -r '.attached_File')
-    local VERBOSE=$(echo "$PARAMS" | jq -r '.verbose')
-    local SEARCH=$(echo "$PARAMS" | jq -r '.search_enabled')
-    local PROMPT=$(echo "$PARAMS" | jq -r '.prompt')
-
+    local USE_MARKDOWN=$(echo "$PARAMS" | base64 --decode | jq -r '.use_markdown_table')
+    local USE_GLOW=$(echo "$PARAMS" | base64 --decode | jq -r '.glow')
+    local MODEL=$(echo "$PARAMS" | base64 --decode | jq -r '.model')
+    local ATTACHED_FILE=$(echo "$PARAMS" | base64 --decode | jq -r '.attached_File')
+    local VERBOSE=$(echo "$PARAMS" | base64 --decode | jq -r '.verbose')
+    local SEARCH=$(echo "$PARAMS" | base64 --decode | jq -r '.search_enabled')
+    local PROMPT=$(echo "$PARAMS" | base64 --decode | jq -r '.prompt')
     if [[ -s /dev/stdin || -p /dev/stdin ]]; then
         if [[ -z "$PROMPT" ]]; then
             PROMPT="$(cat -)"
