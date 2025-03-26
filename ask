@@ -2,7 +2,7 @@
 
 # Function to display help
 usage() {
-    echo "Usage: $0 <prompt> [-m <model name>] [-g] [--glow] [--markdown] [-f <attached_File>]"
+    echo "Usage: $0 <prompt> [-m <model name>] [-g][-f <attached_File>]"
     echo "  <prompt>: The text prompt to send to the Gemini API.  If -g is used, this is the initial prompt."
     echo "  -p <prompt path>     Provide a path to a file prompt."
     echo "  -s: Enable Google Search for the prompt."
@@ -13,7 +13,6 @@ usage() {
     echo "  -g: Use glow to display the output."
     echo "  -f <attached_File>:  Path to a file to include in the request."
     echo "  -i: List all models along with their details"
-    echo "  --markdown: Use markdown table format for the output."
     exit 1
 }
 
@@ -49,43 +48,33 @@ send_gemini_request() {
 
     [[ "$VERBOSE" = "true" ]] && echo "\nSending Request:\n\n\tAPI URL: $API_URL" >&2
     # Send request and base64 encode response
-    local response=$(curl -s -X POST "$API_URL" \
+    local RESPONSE=$(curl -s -X POST "$API_URL" \
         -H "Content-Type: application/json" \
         --data-binary "@.tmp_file" | base64)
     [[ ! "$VERBOSE" = "true" ]] && rm .tmp_file 
     [[ "$VERBOSE" = "true" ]] && echo "$response" | base64 --decode | jq > /tmp/.tmp
-    if ! echo "$response" | base64 --decode | jq . >/dev/null 2>&1; then
+    if ! echo "$RESPONSE" | base64 --decode | jq . >/dev/null 2>&1; then
         echo "Invalid JSON response:" >&2
-        echo "$decoded_response" >&2
+        echo "$RESPONSE" | base64 --decode >&2
         return 1
     fi
     
-    if [ "$text_response" = "null" ]; then
-      echo "Finish Result: $(echo "$response" | base64 --decode | jq)"
+    if [ "$TEXT_RESPONSE" = "null" ]; then
+      echo "Finish Result: $(echo "$RESPONSE" | base64 --decode | jq)"
       return 1
     fi
 
-    local text_response=$(echo "$response" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
-    local safety_ratings=$(echo "$response" | base64 --decode | jq -r '.candidates[0].finishReason' 2>/dev/null)
+    local TEXT_RESPONSE=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
+    local safety_ratings=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].finishReason' 2>/dev/null)
 
-    [[ "$VERBOSE" = "true" ]] && echo "$response" | base64 --decode | jq > /tmp/.tmp
+    [[ "$VERBOSE" = "true" ]] && echo "$RESPONSE" | base64 --decode | jq > /tmp/.tmp
 
-    if [ -z "$text_response" ]; then
+    if [ -z "$TEXT_RESPONSE" ]; then
         echo "No text response received." >&2
         return 1
     fi
-
-    if [ "$use_markdown_table" = "true" ]; then
-        echo "| Generated Content |"
-        echo "|-------------------|"
-        echo "| $text_response |"
-        echo
-        echo "| Finish Reason |"
-        echo "|---------------|"
-        echo "| $safety_ratings |"
-    else
-        echo "$text_response" | base64
-    fi
+    
+    echo "$TEXT_RESPONSE" | base64
 }
 
 send_prompt_to_gemini() {
@@ -148,7 +137,6 @@ send_prompt_with_file_to_gemini() {
 # Function: parse_arguments
 # ---------------------------
 parse_arguments() {
-    local USE_MARKDOWN="false"
     local USE_GLOW="false"
     local MODEL="gemini-2.0-flash"  # Default model
     local ATTACHED_FILE="" # Initialize attached_File
@@ -185,7 +173,6 @@ parse_arguments() {
                     exit 1
                 fi
                 ;;
-            --markdown) USE_MARKDOWN="true" ;;
             -g) USE_GLOW="true" ;;
             -f) # Handle the -f option
                 shift
@@ -209,7 +196,6 @@ parse_arguments() {
     done
 
     jq --null-input '{
-        "use_markdown_table": "'"$USE_MARKDOWN"'", 
         "model": "'"$MODEL"'",
         "glow": "'"$USE_GLOW"'",
         "attached_File": "'"$ATTACHED_FILE"'", 
@@ -241,7 +227,6 @@ main() {
     # Configuration & Constants
     # ---------------------------
     local PARAMS=$(parse_arguments $@)
-    local USE_MARKDOWN=$(echo "$PARAMS" | base64 --decode | jq -r '.use_markdown_table')
     local USE_GLOW=$(echo "$PARAMS" | base64 --decode | jq -r '.glow')
     local MODEL=$(echo "$PARAMS" | base64 --decode | jq -r '.model')
     local ATTACHED_FILE=$(echo "$PARAMS" | base64 --decode | jq -r '.attached_File')
