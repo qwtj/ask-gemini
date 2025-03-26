@@ -1,0 +1,8 @@
+**Write a commit message; use rules:**
+- **Subject line under 50 characters (short summary)**
+- **No Markdown**
+- **Body lines wrapped at 72 characters each (explanatory details)**
+- **DO NOT WRAP IN CODEBLOCK**
+- Plaintext only
+- Focus on readability
+

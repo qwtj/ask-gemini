@@ -4,12 +4,16 @@
 usage() {
     echo "Usage: $0 <prompt> [-m <model name>] [-g] [--glow] [--markdown] [-f <attached_File>]"
     echo "  <prompt>: The text prompt to send to the Gemini API.  If -g is used, this is the initial prompt."
+    echo "  -p <prompt path>     Provide a path to a file prompt."
+    echo "  -s: Enable Google Search for the prompt."
+    echo "  -v: Enable verbose mode."
+    echo "  -h, --help: Display this help message."
     echo "  -m <model name>: Specify the model (e.g., gemini-2.0-flash, gemini-1.5-pro, etc.)"
     echo "  Supported models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash, gemini-1.5-flash-8b, gemini-1.5-pro"
     echo "  -g: Use glow to display the output."
-    echo "  --markdown: Use markdown table format for the output."
     echo "  -f <attached_File>:  Path to a file to include in the request."
     echo "  -i: List all models along with their details"
+    echo "  --markdown: Use markdown table format for the output."
     exit 1
 }
 
@@ -114,6 +118,16 @@ parse_arguments() {
 
     while [ "$#" -gt 0 ]; do
         case "$1" in
+            -p) shift
+                if [ -z "$1" ]; then
+                    echo "Error: -p requires a prompt"
+                    exit 1
+                fi
+                PROMPT="$1"
+                ;;
+            -h|--help)
+                usage
+                ;;
             -m)
                 shift
                 case "$1" in
