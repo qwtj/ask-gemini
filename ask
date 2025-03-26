@@ -6,8 +6,7 @@ usage() {
     echo "  <prompt>: The text prompt to send to the Gemini API.  If -g is used, this is the initial prompt."
     echo "  -m <model name>: Specify the model (e.g., gemini-2.0-flash, gemini-1.5-pro, etc.)"
     echo "  Supported models: gemini-2.0-flash, gemini-2.0-flash-lite, gemini-1.5-flash, gemini-1.5-flash-8b, gemini-1.5-pro"
-    echo "  -g: Prepend guidelines to the prompt.  If used, you can provide an initial prompt as the next argument."
-    echo "  --glow: Use glow to display the output."
+    echo "  -g: Use glow to display the output."
     echo "  --markdown: Use markdown table format for the output."
     echo "  -f <attached_File>:  Path to a file to include in the request."
     echo "  -i: List all models along with their details"
@@ -117,13 +116,6 @@ attached_File="" # Initialize attached_File
 VERBOSE="false"
 search_level="false"
 
-guidelines="  •  Write a commit message; use rules: Plaintext only, no markdown, Focus on readability
-
-Subject line under 50 characters (short summary).
-  •  Body lines wrapped at 72 characters each (explanatory details).  When provided a status only focus on staged changes. DO NOT WRAP IN CODEBLOCK. Changes below:
-
-"
-
 while [ "$#" -gt 0 ]; do
     case "$1" in
         -m)
@@ -147,18 +139,7 @@ while [ "$#" -gt 0 ]; do
             esac
             ;;
         --markdown) use_markdown_table="true" ;;
-        --glow) use_glow="true" ;;
-        -g) prepend_guidelines="true"
-            shift
-            if [ -n "$1" ]; then
-                prompt="$1"
-            else
-                read prompt
-                while IFS= read line; do
-                    prompt="${prompt}${line}"
-                done
-            fi
-            ;;
+        -g) use_glow="true" ;;
         -f) # Handle the -f option
             shift
             attached_File="$1"
@@ -180,30 +161,18 @@ while [ "$#" -gt 0 ]; do
     fi
 done
 
-if [[ "$prepend_guidelines" == "false" && ( -p /dev/stdin || -s /dev/stdin ) ]]; then
-  while IFS= read -r line; do
-    prompt+="$line"
-  done
-fi
-
 if [ -z "$prompt" ]; then
     echo "Error: No prompt provided"
     usage
     exit 1
 fi
 
-final_prompt="$prompt"
-if [ "$prepend_guidelines" = "true" ]; then
-    final_prompt="$guidelines$final_prompt"
-fi
-
 if [ "$use_glow" = "true" ]; then
-    if ! send_prompt_to_gemini "$final_prompt" "$use_markdown_table" "$model" "$attached_File" "$search_enabled"; then
+    if ! send_prompt_to_gemini "$PROMPT" "$use_markdown_table" "$model" "$attached_File" "$search_enabled" | glow; then
         exit 1 # Exit if send_prompt_to_gemini failed
     fi
-    glow
 else
-    if ! send_prompt_to_gemini "$final_prompt" "$use_markdown_table" "$model" "$attached_File" "$search_enabled"; then
+    if ! send_prompt_to_gemini "$PROMPT" "$use_markdown_table" "$model" "$attached_File" "$search_enabled"; then
         exit 1 # Exit if send_prompt_to_gemini failed
     fi
 fi
