@@ -1,74 +1,148 @@
-# Install
+# ask-google-gemini
 
-```zsh
+A command-line tool to interact with the Google Gemini API.
 
-mkdir -p ~/.bin
-cp ask ~/.bin/.
-echo 'export PATH="$PATH:${HOME}/.bin"' >> ~/.zprofile
-echo "export GOOGLE_API_KEY=<YOUR API KEY>" >> ~/.zprofile
-. ~/.zprofile
+## Usage
+
+```bash
+ask-google-gemini [-m <model name>] [-g] [-f <attached_File>] [-s] <prompt>
 ```
 
-## Example use cases
+### Arguments:
 
-### Git Messages
-Use, -g, for using predefined prompt to return a good commit message
+*   `<prompt>`: The text prompt to send to the Gemini API. If `-g` is used, this is the initial prompt.  If a file is piped into the script the prompt will be appended to the end of file.
 
-ask  -g "$(git diff HEAD)"
+### Options:
 
-### Simple Question and Reponse
-$ ask "what is the first day of week?" <br>
-Monday
+*   `-p <prompt path>`: Provide a path to a file containing the prompt.
+*   `-s`: Enable Google Search for the prompt.
+*   `-v`: Enable verbose mode.
+*   `-h, --help`: Display this help message.
+*   `-m <model name>`: Specify the model (e.g., `gemini-2.0-flash`, `gemini-1.5-pro`, etc.).
+    *   Supported models: `gemini-2.0-flash`, `gemini-2.0-flash-lite`, `gemini-1.5-flash`, `gemini-1.5-flash-8b`, `gemini-1.5-pro`
+*   `-g`: Use `glow` to display the output.
+*   `-f <attached_File>`: Path to a file to include in the request.
+*   `-i`: List all models along with their details.
 
-### Creating Scripts
-$ ask "write a shell script to output name and File Access Date/Time using exiftool given a directory of images as an option" > list_images.sh
-$ chmod 755 list_images.sh
-$ ./list_images.sh test_images
-91036491.png: 2024:08:16 13:18:35-05:00
+## Examples
 
-### For the Ultra Brave Running a Command Blindly
-$ $(ask "macos terminal command for listing directory contents")
-ask		readme.md	test
+1.  **Simple Prompt:**
 
-### Getting Directions
-$ ask "how do I make jello" --markdown --glow
+    ```bash
+    ask-google-gemini "What is the capital of France?"
+    ```
 
-```
-    GENERATED CONTENT                                                                                                 
-  ─────────────────────                                                                                               
-    Ingredients:                                                                                                      
-                                                                                                                      
-  • 1 (6 ounce) package cherry gelatin mix                                                                            
-  • 1 cup boiling water                                                                                               
-  • 1 cup cold water                                                                                                  
-  • 1 (15 ounce) can pitted dark sweet cherries, drained                                                              
-                                                                                                                    
-  Instructions:                                                                                                       
-                                                                                                                    
-  1. Prepare the gelatin: In a medium bowl, whisk together the gelatin mix and boiling water until the gelatin is     
-  dissolved.                                                                                                          
-  2. Add cold water: Stir in the cold water.                                                                          
-  3. Add cherries: Gradually fold in the drained cherries.                                                            
-  4. Pour into mold: Pour the gelatin mixture into an 8-inch square baking dish or individual molds.                  
-  5. Refrigerate: Refrigerate for at least 4 hours, or until firm.                                                    
-  6. Unmold: To unmold, dip the baking dish briefly in hot water. Invert the jello onto a serving plate.              
-                                                                                                                    
-  Tips:                                                                                                               
-                                                                                                                    
-  • For a firmer jello, use 1 1/2 cups of cold water.                                                                 
-  • To make the jello more flavorful, add a few drops of cherry extract to the gelatin mixture.                       
-  • For a layered jello, alternate layers of cherry jello with vanilla or other flavors.                              
-  • To make cherry jello shots, pour the gelatin mixture into individual shot glasses.                                
-  • Serve the jello with whipped cream or ice cream.    |                                                             
-                                                                                                                    
-             SAFETY RATINGS                                                                                           
-  ────────────────────────────────────                                                                                
-    HARM_CATEGORY_SEXUALLY_EXPLICIT:                                                                                  
-    NEGLIGIBLE                                                                                                        
-    HARM_CATEGORY_HATE_SPEECH:                                                                                        
-    NEGLIGIBLE                                                                                                        
-    HARM_CATEGORY_HARASSMENT:                                                                                         
-    NEGLIGIBLE                                                                                                        
-    HARM_CATEGORY_DANGEROUS_CONTENT:                                                                                  
-    NEGLIGIBLE              
-```
+2.  **Prompt with Google Search:**
+
+    ```bash
+    ask-google-gemini -s "What are the latest news headlines?"
+    ```
+
+3.  **Specify Model:**
+
+    ```bash
+    ask-google-gemini -m gemini-1.5-pro "Translate this to Spanish: Hello, world!"
+    ```
+
+4.  **Use Glow for Output:**
+
+    ```bash
+    ask-google-gemini -g "Explain the concept of quantum entanglement."
+    ```
+
+5.  **Attach a File:**
+
+    ```bash
+    ask-google-gemini -f ./my_document.txt "Summarize the contents of this file."
+    ```
+
+6.  **Read Prompt from File:**
+
+    ```bash
+    ask-google-gemini -p ./my_prompt.txt
+    ```
+
+7.  **List available models:**
+
+    ```bash
+    ask-google-gemini -i
+    ```
+
+8.  **Piping a file prompt with additional text**
+
+    ```bash
+    cat ./my_prompt.txt | ask-google-gemini "And also answer this prompt."
+    ```
+
+## Prerequisites
+
+*   **Google API Key:** You need a Google API key with access to the Gemini API. Set it as an environment variable:
+
+    ```bash
+    export GOOGLE_API_KEY="YOUR_API_KEY"
+    ```
+
+*   **jq:**  A lightweight and flexible command-line JSON processor.  Install using your operating system's package manager.
+
+    ```bash
+    # Example (Debian/Ubuntu)
+    sudo apt-get update
+    sudo apt-get install jq
+    ```
+
+*   **curl:** A command-line tool for making HTTP requests.  It's usually pre-installed on most systems.
+
+*   **base64:** A command-line tool to encode and decode files or strings. It's usually pre-installed on most systems.
+
+*   **glow** (Optional): If you want to use the `-g` option, you need to install `glow`:
+
+    ```bash
+    brew install glow
+    ```
+
+## Installation
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone <repository_url>
+    cd <repository_directory>
+    ```
+
+2.  **Make the script executable:**
+
+    ```bash
+    chmod +x ask-google-gemini
+    ```
+
+3.  **(Optional) Add to your PATH:**  To make the script accessible from anywhere, add it to a directory in your `PATH` environment variable. For example:
+
+    ```bash
+    sudo mv ask-google-gemini /usr/local/bin/
+    ```
+
+## Environment Variables
+
+*   `GOOGLE_API_KEY`: Your Google API key. Required.
+
+## Error Handling
+
+The script includes error handling for:
+
+*   Missing or invalid API key.
+*   Invalid command-line arguments.
+*   File not found.
+*   Invalid model name.
+*   Empty responses from the API.
+*   Network connectivity issues.
+*   Missing `jq` or `curl` utilities.
+
+## Notes
+
+*   The script uses temporary files for storing request bodies and responses. These files are automatically cleaned up upon successful execution or when interrupted.
+*   Verbose mode (`-v`) can be helpful for debugging, as it displays the API URL, request headers, and saves the request and response to files.
+*   The default model is `gemini-2.0-flash`. You can change it using the `-m` option.
+*   When attaching files, the script determines the MIME type using the `file` command.  Ensure that the `file` command is available on your system.
+*   If a prompt file is specified with `-p`, its contents are read and used as the prompt.
+*   If standard input is a pipe or contains content, it is read and appended to the prompt.  If no arguments are passed and standard input is empty, the usage is shown and the script exits.
+*   The google search tool will only work if the model supports it.
