@@ -2,7 +2,7 @@
 
 # Function to display help
 usage() {
-    echo "Usage: $0 <prompt> [-m <model name>] [-g][-f <attached_File>]"
+    echo "Usage: $0 [-m <model name>] [-g][-f <attached_File>] <prompt>"
     echo "  <prompt>: The text prompt to send to the Gemini API.  If -g is used, this is the initial prompt."
     echo "  -p <prompt path>     Provide a path to a file prompt."
     echo "  -s: Enable Google Search for the prompt."
@@ -156,6 +156,7 @@ send_prompt_with_file_to_gemini() {
 # Function: parse_arguments
 # ---------------------------
 parse_arguments() {
+    local OPTIND opt
     local USE_GLOW="false"
     local MODEL="gemini-2.0-flash"  # Default model
     local ATTACHED_FILE="" # Initialize attached_File
@@ -163,22 +164,21 @@ parse_arguments() {
     local SEARCH="false"
     local PROMPT=""
     
-    while [ $# -gt 0 ]; do
-        case "$1" in
-            -p) shift
-                if [ -z "$1" ]; then
-                    echo "Error: -p requires a prompt"
+    while getopts ":p:m:f:sgvhi" opt; do
+        case "$opt" in
+            p)
+                if [ -z "$OPTARG" ]; then
+                    echo "Error: -p requires a prompt file path"
                     exit 1
                 fi
-                PROMPT="$(cat "$1")"
-                shift
+                if [ ! -f "$OPTARG" ]; then
+                    echo "Error: File not found: $OPTARG" >&2
+                    exit 1
+                fi
+                PROMPT="$(cat "$OPTARG")"
                 ;;
-            -h|--help)
-                usage
-                ;;
-            -m)
-                shift
-                if [ -z "$1" ]; then
+            m)
+                if [ -z "$OPTARG" ]; then
                     echo "Error: -m requires a model name" >&2
                     usage
                 fi
@@ -188,35 +188,53 @@ parse_arguments() {
                     echo "Error: Unable to retrieve valid model names." >&2
                     exit 1
                 fi
-                if echo "$valid_models" | grep -Fxq "$1"; then
-                    MODEL="$1"
+                if echo "$valid_models" | grep -Fxq "$OPTARG"; then
+                    MODEL="$OPTARG"
                 else
-                    echo "Error: Unsupported model '$1'. Valid models are:" >&2
+                    echo "Error: Unsupported model '$OPTARG'. Valid models are:" >&2
                     echo "$valid_models"
                     exit 1
                 fi
                 ;;
-            -g) USE_GLOW="true" ;;
-            -f) # Handle the -f option
-                shift
-                ATTACHED_FILE="$1"
+            f)
+                if [ -z "$OPTARG" ]; then
+                    echo "Error: -f requires a file path"
+                    exit 1
+                fi
+                ATTACHED_FILE="$OPTARG"
                 ;;
-            -s)
+            g)
+                USE_GLOW="true"
+                ;;
+            s)
                 SEARCH="true"
                 ;;
-            -v)
+            v)
                 VERBOSE="true"
                 ;;
-            -i) 
+            h)
+                usage
+                ;;
+            i)
                 get_models_info >&2
                 exit
                 ;;
-            *)  PROMPT="$1"
+            \?)
+                echo "Error: Invalid option -$OPTARG" >&2
+                usage
+                ;;
+            :)
+                echo "Error: Option -$OPTARG requires an argument" >&2
+                usage
+                ;;
         esac
-        if [ $# -ge 1 ]; then
-            shift
-        fi
     done
+    shift $((OPTIND - 1))
+
+    # Handle remaining arguments as the prompt
+    if [ $# -gt 0 ]; then
+        PROMPT="$*"
+    fi
 
     jq -R --null-input \
     --arg model "$MODEL" \
