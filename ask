@@ -162,8 +162,8 @@ parse_arguments() {
     local VERBOSE="false"
     local SEARCH="false"
     local PROMPT=""
-
-    while [ "$#" -gt 0 ]; do
+    
+    while [ $# -gt 0 ]; do
         case "$1" in
             -p) shift
                 if [ -z "$1" ]; then
@@ -207,8 +207,8 @@ parse_arguments() {
             -v)
                 VERBOSE="true"
                 ;;
-            -i)
-                get_models_info
+            -i) 
+                get_models_info >&2
                 exit
                 ;;
             *)  PROMPT="$1"
@@ -271,6 +271,9 @@ main() {
     # Configuration & Constants
     # ---------------------------
     local PARAMS="$(parse_arguments $@)"
+    if [[ -z "$PARAMS" ]]; then
+      exit
+    fi
     local USE_GLOW="$(echo "$PARAMS" | base64 --decode | jq -r '.glow')"
     local MODEL="$(echo "$PARAMS" | base64 --decode | jq -r '.model')"
     local ATTACHED_FILE="$(echo "$PARAMS" | base64 --decode | jq -r '.attached_File')"
