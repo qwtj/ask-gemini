@@ -233,7 +233,7 @@ parse_arguments() {
 
     # Handle remaining arguments as the prompt
     if [ $# -gt 0 ]; then
-        PROMPT="$*"
+        PROMPT="$PROMPT\n$*"
     fi
 
     jq -R --null-input \
