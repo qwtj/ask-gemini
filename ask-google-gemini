@@ -78,8 +78,7 @@ send_gemini_request() {
         return 1
     fi
 
-    local TEXT_RESPONSE=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null)
-
+    local TEXT_RESPONSE=$(echo "$RESPONSE" | base64 --decode | jq -r '.candidates[0].content.parts[] | .text' 2>/dev/null | base64)
     if [ "$TEXT_RESPONSE" = "null" ]; then
       echo "Finish Result: $(echo "$RESPONSE" | base64 --decode | jq)" >&2
       return 1
@@ -92,7 +91,7 @@ send_gemini_request() {
         return 1
     fi
     
-    echo "$TEXT_RESPONSE" | base64
+    echo "$TEXT_RESPONSE"
 }
 
 send_prompt_to_gemini() {
