@@ -88,6 +88,7 @@ send_gemini_request() {
     # Check if the response is empty or null
     if [ -z "$TEXT_RESPONSE" ]; then
         echo "No text response received." >&2
+        echo "$(echo "$RESPONSE" | base64 --decode)" >&2
         return 1
     fi
     
